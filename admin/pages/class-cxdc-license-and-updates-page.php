@@ -147,65 +147,67 @@ class Webmasterpro_License_And_Updates
     {
         $repo_owner = get_option('cxdc_webmaster_pro_plugin_repo_owner');
         $repo_name = get_option('cxdc_webmaster_pro_plugin_repo_name');
-        $branch_or_tag = get_option('cxdc_webmaster_pro_plugin_repo_tagname');
-        $download_url = "https://github.com/{$repo_owner}/{$repo_name}/archive/refs/tags/{$branch_or_tag}.zip";
-        $plugin_temp_zip = WP_PLUGIN_DIR . '/' . $this->plugin_slug . '-temp.zip';
-
+        $tag = get_option('cxdc_webmaster_pro_plugin_repo_tagname'); 
+        $download_url = "https://github.com/{$repo_owner}/{$repo_name}/archive/refs/heads/{$tag}.zip";
+        $plugin_temp_zip = WP_PLUGIN_DIR . '/cyberxdc-temp.zip';
         if (!is_writable(WP_PLUGIN_DIR)) {
             error_log('The plugin directory is not writable.');
             return false;
         }
-
         $response = wp_remote_get($download_url, array('timeout' => 30));
-
         if (is_wp_error($response)) {
             error_log('Failed to download the plugin ZIP file from GitHub. Error: ' . $response->get_error_message());
             return false;
         }
-
         $response_code = wp_remote_retrieve_response_code($response);
-
         if ($response_code !== 200) {
             error_log("Failed to download the plugin ZIP file from GitHub. HTTP Response Code: {$response_code}");
             return false;
         }
-
         $file_saved = file_put_contents($plugin_temp_zip, wp_remote_retrieve_body($response));
-
         if ($file_saved === false) {
             error_log('Failed to save the plugin ZIP file to the plugin directory.');
             return false;
         }
-
         if (!function_exists('WP_Filesystem')) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
         }
-
         WP_Filesystem();
-
         global $wp_filesystem;
-
         if (!$wp_filesystem->exists($plugin_temp_zip)) {
             error_log('The downloaded ZIP file does not exist.');
             return false;
         }
-
         $unzip_result = unzip_file($plugin_temp_zip, WP_PLUGIN_DIR);
-
         if (is_wp_error($unzip_result)) {
             error_log('Failed to extract the plugin ZIP file. Error: ' . $unzip_result->get_error_message());
             unlink($plugin_temp_zip);
             return false;
         }
-
         if (!$wp_filesystem->delete($plugin_temp_zip)) {
             error_log('Failed to delete the temporary plugin ZIP file.');
         }
-
-        if (!$wp_filesystem->exists(WP_PLUGIN_DIR . '/' . $this->plugin_slug)) {
+        $extracted_folder = WP_PLUGIN_DIR . '/wpp-cyberxdc'; // Adjust folder name as needed
+       
+        // Ensure the extracted folder exists
+        if ($wp_filesystem->exists($extracted_folder)) {
+            $new_folder_name = WP_PLUGIN_DIR . '/' . WEBMASTERPRO_PLUGIN_BASENAME; // Adjust with your actual plugin basename
+        
+            // Attempt to rename the folder
+            if (!$wp_filesystem->move($extracted_folder, $new_folder_name, true)) {
+                error_log('Failed to rename the extracted plugin folder.');
+                return false;
+            }
+        } else {
+            error_log('Extracted plugin folder does not exist.');
             return false;
         }
-
+    
+        // Check if the renamed folder exists
+        if (!$wp_filesystem->exists(WP_PLUGIN_DIR . '/' . WEBMASTERPRO_PLUGIN_BASENAME)) {
+            return false;
+        }
+    
         return true;
     }
     // Notice for successful plugin update

@@ -275,9 +275,9 @@ function cyberxdc_webmaster_pro_compare_versions() {
 
 function cyberxdc_webmaster_pro_custom_update_functionality()
 {
-    $repo_owner = get_option('cyberxdc_plugin_repo_owner');
-    $repo_name = get_option('cyberxdc_plugin_repo_name');
-    $tag = get_option('cyberxdc_plugin_repo_tagname'); 
+    $repo_owner = get_option('cxdc_webmaster_pro_plugin_repo_owner');
+    $repo_name = get_option('cxdc_webmaster_pro_plugin_repo_name');
+    $tag = get_option('cxdc_webmaster_pro_plugin_repo_tagname'); 
     $download_url = "https://github.com/{$repo_owner}/{$repo_name}/archive/refs/heads/{$tag}.zip";
     $plugin_temp_zip = WP_PLUGIN_DIR . '/cyberxdc-temp.zip';
     if (!is_writable(WP_PLUGIN_DIR)) {
@@ -317,8 +317,26 @@ function cyberxdc_webmaster_pro_custom_update_functionality()
     if (!$wp_filesystem->delete($plugin_temp_zip)) {
         error_log('Failed to delete the temporary plugin ZIP file.');
     }
-    if (!$wp_filesystem->exists(WP_PLUGIN_DIR . '/wpp-cyberxdc')) {
+    $extracted_folder = WP_PLUGIN_DIR . '/wpp-cyberxdc'; // Adjust folder name as needed
+   
+    // Ensure the extracted folder exists
+    if ($wp_filesystem->exists($extracted_folder)) {
+        $new_folder_name = WP_PLUGIN_DIR . '/' . WEBMASTERPRO_PLUGIN_BASENAME; // Adjust with your actual plugin basename
+    
+        // Attempt to rename the folder
+        if (!$wp_filesystem->move($extracted_folder, $new_folder_name, true)) {
+            error_log('Failed to rename the extracted plugin folder.');
+            return false;
+        }
+    } else {
+        error_log('Extracted plugin folder does not exist.');
         return false;
     }
+
+    // Check if the renamed folder exists
+    if (!$wp_filesystem->exists(WP_PLUGIN_DIR . '/' . WEBMASTERPRO_PLUGIN_BASENAME)) {
+        return false;
+    }
+
     return true;
 }
